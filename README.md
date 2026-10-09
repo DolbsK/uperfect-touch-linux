@@ -97,12 +97,37 @@ Working order:
 
 ## Monitor does not wake up after the Pi reboots
 
-The monitor only looks for a signal when it receives power (or when a USB-C
-host with DisplayPort is connected). If the Pi reboots while the monitor is on,
-the monitor goes to sleep and does not come back, even though the Pi is sending
-1920x1080@60.
+The monitor only looks for a signal when it receives power. If the Pi reboots
+while the monitor is on, the monitor goes to standby and stays black, even though
+the Pi is sending 1920x1080@60. Once asleep it ignores every input: HDMI, the USB
+cable, and even a laptop on USB-C. Unplugging only the PD supply does not reset it
+either, because the USB cable keeps it powered.
 
-Tried without success:
+### Fix: wake it over DDC/CI
+
+The monitor still answers DDC/CI on the HDMI cable while it sleeps, and it accepts
+the VESA power command:
+
+```sh
+sudo apt install ddcutil
+sudo modprobe i2c-dev
+sudo ddcutil getvcp D6        # Power mode: DPMS: Standby (sl=0x02)
+sudo ddcutil setvcp D6 0x01   # wakes the monitor, the picture comes back
+```
+
+The [wake](wake/) folder has a small script and a systemd timer that checks the
+power mode every 20 seconds and sends `D6 0x01` when the monitor is in standby.
+It covers reboots and any other time the monitor falls asleep. To install:
+
+```sh
+cd wake && sudo sh install.sh
+```
+
+Tested on a Raspberry Pi 5: after `sudo reboot` with the monitor powered, the
+timer found it in standby (`x02`), woke it, and the picture and touch came back
+without touching anything.
+
+Other things we tried that did NOT wake it:
 
 - `video=HDMI-A-1:1920x1080@60D` (force the output on) in `cmdline.txt`
 - `hdmi_force_hotplug=1` in `config.txt`
@@ -110,17 +135,6 @@ Tried without success:
 - Unplugging and re-plugging the HDMI cable or the USB cable
 - Setting *Setup > Signal Source* to HDMI in the monitor menu
 - Powering the Pi and the monitor at the same time
-
-Once the monitor has gone to sleep while powered, it ignores every input: HDMI,
-the USB cable, and even a laptop on USB-C with DisplayPort (which does wake it
-when the monitor was unpowered). Unplugging only the PD supply does not reset it
-either, because the monitor stays powered from the USB cable. It only searches
-for a signal again after it loses all power (PD supply and every USB cable) and
-is powered back on.
-
-What works is powering the monitor after the Pi is already sending video.
-To automate it you need something that switches the monitor's power after the
-Pi has booted, such as a smart plug or a relay.
 
 ## How the cause was found
 
@@ -151,7 +165,8 @@ difference in how the host talks to it rather than to a broken monitor.
 
 Tested on 2026-10-09 with Raspberry Pi OS (Trixie, kernel 6.18.50) on a
 Raspberry Pi 4 Model B and a Raspberry Pi 5 Model B. Touch works on both.
-Not yet tested with this fix: other Linux distributions, other UPERFECT models.
+DDC/CI wake tested on Raspberry Pi 5. Not yet tested: other Linux distributions,
+other UPERFECT models.
 
 ## License
 

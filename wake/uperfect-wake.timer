@@ -1,0 +1,10 @@
+[Unit]
+Description=Check the UPERFECT monitor every 20 s
+
+[Timer]
+OnBootSec=10
+OnUnitActiveSec=20
+AccuracySec=1
+
+[Install]
+WantedBy=timers.target

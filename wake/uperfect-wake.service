@@ -1,0 +1,6 @@
+[Unit]
+Description=Wake the UPERFECT monitor over DDC/CI
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/uperfect-wake.sh
