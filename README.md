@@ -111,6 +111,13 @@ Tried without success:
 - Setting *Setup > Signal Source* to HDMI in the monitor menu
 - Powering the Pi and the monitor at the same time
 
+Once the monitor has gone to sleep while powered, it ignores every input: HDMI,
+the USB cable, and even a laptop on USB-C with DisplayPort (which does wake it
+when the monitor was unpowered). Unplugging only the PD supply does not reset it
+either, because the monitor stays powered from the USB cable. It only searches
+for a signal again after it loses all power (PD supply and every USB cable) and
+is powered back on.
+
 What works is powering the monitor after the Pi is already sending video.
 To automate it you need something that switches the monitor's power after the
 Pi has booted, such as a smart plug or a relay.
